@@ -40,6 +40,7 @@
 #include <nav_msgs/Odometry.h>
 #include <sensor_msgs/Imu.h>
 #include <sensor_msgs/NavSatFix.h>
+#include <geometry_msgs/PoseWithCovarianceStamped.h>
 
 #include <tf2/LinearMath/Transform.h>
 #include <tf2_ros/static_transform_broadcaster.h>
@@ -105,6 +106,9 @@ class NavSatTransform
     //! @param[in] msg The odometry message to process
     //!
     void odomCallback(const nav_msgs::OdometryConstPtr& msg);
+
+    /****** MODIFICATION *******/
+    void poseCallback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& pose_msg);
 
     //! @brief Converts the odometry data back to GPS and broadcasts it
     //! @param[out] filtered_gps The NavSatFix message to prepare

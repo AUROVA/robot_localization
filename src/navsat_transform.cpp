@@ -162,6 +162,7 @@ namespace RobotLocalization
     }
 
     ros::Subscriber odom_sub = nh.subscribe("odometry/filtered", 1, &NavSatTransform::odomCallback, this);
+    ros::Subscriber pose_sub = nh.subscribe("pose/filtered", 1, &NavSatTransform::poseCallback, this);
     ros::Subscriber gps_sub = nh.subscribe("gps/fix", 1, &NavSatTransform::gpsFixCallback, this);
     ros::Subscriber imu_sub;
 
@@ -562,6 +563,43 @@ namespace RobotLocalization
     if (!transform_good_ && !use_manual_datum_)
     {
       setTransformOdometry(msg);
+    }
+
+    tf2::fromMsg(msg->pose.pose, latest_world_pose_);
+    latest_odom_covariance_.setZero();
+    for (size_t row = 0; row < POSE_SIZE; ++row)
+    {
+      for (size_t col = 0; col < POSE_SIZE; ++col)
+      {
+        latest_odom_covariance_(row, col) = msg->pose.covariance[row * POSE_SIZE + col];
+      }
+    }
+
+    odom_update_time_ = msg->header.stamp;
+    odom_updated_ = true;
+  }
+
+  void NavSatTransform::poseCallback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& pose_msg)
+  {
+    /////////////////////////////////////////////////////////////////////
+    //// PARSE POSE TO ODOMETRY
+    nav_msgs::Odometry *msg = new nav_msgs::Odometry();
+    msg->header = pose_msg->header;
+    msg->child_frame_id = "base_link";
+    msg->pose = pose_msg->pose;
+    msg->pose.pose.orientation.x = 0.0;
+    msg->pose.pose.orientation.y = 0.0;
+    msg->pose.pose.orientation.z = 0.0;
+    msg->pose.pose.orientation.w = 1.0;
+    /////////////////////////////////////////////////////////////////////
+
+    world_frame_id_ = msg->header.frame_id;
+    base_link_frame_id_ = msg->child_frame_id;
+
+    if (!transform_good_ && !use_manual_datum_)
+    {
+      nav_msgs::OdometryConstPtr msg_ptr(msg); //NEW
+      setTransformOdometry(msg_ptr);
     }
 
     tf2::fromMsg(msg->pose.pose, latest_world_pose_);
